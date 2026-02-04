@@ -94,7 +94,7 @@ function handleCredentialResponse(response) {
         init3DScene();
         loadDataFromGoogleSheets();
     } catch (error) {
-        console.error('❌ Error processing sign-in:', error);
+        console.error('Error processing sign-in:', error);
     }
 }
 
@@ -226,9 +226,9 @@ function init3DScene() {
     animate();
     
     // Log performance info
-    console.log('🎮 Device:', isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop');
-    console.log('📱 Touch:', isTouchDevice ? 'Yes' : 'No');
-    console.log('⚡ Performance mode:', isMobile ? 'Optimized' : 'Full');
+    console.log('Device:', isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop');
+    console.log('Touch:', isTouchDevice ? 'Yes' : 'No');
+    console.log('Performance mode:', isMobile ? 'Optimized' : 'Full');
 }
 
 /**
@@ -298,9 +298,7 @@ function createObjects() {
     });
 }
 
-// ===================================
 // Layout Functions
-// ===================================
 
 /**
  * Transform objects to different layouts
@@ -514,3 +512,4 @@ window.addEventListener('load', function() {
         setTimeout(initializeGoogleSignIn, 500);
     }
 });
+
