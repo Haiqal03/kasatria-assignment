@@ -1,7 +1,5 @@
-// ===================================
+
 // Configuration
-// ===================================
-// REPLACE THESE WITH YOUR ACTUAL VALUES
 const CONFIG = {
     GOOGLE_CLIENT_ID: '860506498651-p0urjmgod2fjckv656temggujhu598jn.apps.googleusercontent.com',
     GOOGLE_API_KEY: 'AIzaSyC_VZCQfjEo7jbsIka6-C1Oc7u87agzgH4',
@@ -9,14 +7,26 @@ const CONFIG = {
     RANGE: 'Sheet1!A2:F202'
 };
 
-// ===================================
 // Global Variables
-// ===================================
 let accessToken = null;
 let userData = [];
 let scene, camera, renderer, controls;
 let objects = [];
 let currentView = 'table';
+
+// Mobile detection and performance settings
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const isTablet = /(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(navigator.userAgent);
+const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+// Performance settings based on device
+const PERFORMANCE_CONFIG = {
+    animationDuration: isMobile ? 1500 : 2000,
+    cameraDistance: isMobile ? 2000 : 3000,
+    rotateSpeed: isMobile ? 0.8 : 0.5,
+    minDistance: isMobile ? 800 : 500,
+    maxDistance: isMobile ? 4000 : 6000
+};
 
 // ===================================
 // Google Sign-In Functions
@@ -47,9 +57,9 @@ function initializeGoogleSignIn() {
             }
         );
 
-        console.log('✅ Google Sign-In initialized successfully');
+        console.log('Google Sign-In initialized successfully');
     } catch (error) {
-        console.error('❌ Error initializing Google Sign-In:', error);
+        console.error('Error initializing Google Sign-In:', error);
     }
 }
 
@@ -57,7 +67,7 @@ function initializeGoogleSignIn() {
  * Handle successful sign-in
  */
 function handleCredentialResponse(response) {
-    console.log('✅ Sign-in successful!');
+    console.log('Sign-in successful!');
     accessToken = response.credential;
     
     try {
@@ -88,9 +98,7 @@ function handleCredentialResponse(response) {
     }
 }
 
-// ===================================
 // Sign Out Functionality
-// ===================================
 
 document.addEventListener('DOMContentLoaded', function() {
     const signOutBtn = document.getElementById('signOutButton');
@@ -102,9 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// ===================================
 // Data Loading Functions
-// ===================================
 
 /**
  * Load data from Google Sheets
@@ -124,14 +130,14 @@ async function loadDataFromGoogleSheets() {
         const data = await response.json();
         userData = parseSheetData(data.values);
         
-        console.log(`✅ Loaded ${userData.length} records`);
+        console.log(`Loaded ${userData.length} records`);
         
         createObjects();
         transform(objects, currentView);
         
         document.getElementById('loading').style.display = 'none';
     } catch (error) {
-        console.error('❌ Error loading data:', error);
+        console.error('Error loading data:', error);
         document.getElementById('loading').innerHTML = `
             <div class="spinner"></div>
             <p>Error loading data</p>
@@ -162,19 +168,17 @@ function getColorByNetWorth(netWorth) {
     return 'linear-gradient(135deg, #44ff44, #00cc00)';
 }
 
-// ===================================
 // 3D Scene Setup
-// ===================================
 
 /**
- * Initialize Three.js 3D scene
+ * Initialize Three.js 3D scene - OPTIMIZED
  */
 function init3DScene() {
     const container = document.getElementById('container');
     
-    // Setup camera
+    // Setup camera with mobile-optimized distance
     camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 10000);
-    camera.position.z = 3000;
+    camera.position.z = PERFORMANCE_CONFIG.cameraDistance;
     
     // Create scene
     scene = new THREE.Scene();
@@ -184,11 +188,21 @@ function init3DScene() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(renderer.domElement);
     
-    // Setup controls
+    // Setup controls with optimized settings
     controls = new THREE.TrackballControls(camera, renderer.domElement);
-    controls.rotateSpeed = 0.5;
-    controls.minDistance = 500;
-    controls.maxDistance = 6000;
+    controls.rotateSpeed = PERFORMANCE_CONFIG.rotateSpeed;
+    controls.minDistance = PERFORMANCE_CONFIG.minDistance;
+    controls.maxDistance = PERFORMANCE_CONFIG.maxDistance;
+    controls.dynamicDampingFactor = 0.2;
+    
+    // Optimize for touch devices
+    if (isTouchDevice) {
+        controls.zoomSpeed = 1.5;
+        controls.panSpeed = 0.8;
+        // Enable pinch zoom on mobile
+        controls.noPan = false;
+        controls.noZoom = false;
+    }
     
     // Handle window resize
     window.addEventListener('resize', onWindowResize);
@@ -196,7 +210,11 @@ function init3DScene() {
     // Setup control buttons
     const buttons = document.querySelectorAll('.control-btn');
     buttons.forEach(btn => {
-        btn.addEventListener('click', function() {
+        const eventType = isTouchDevice ? 'touchend' : 'click';
+        btn.addEventListener(eventType, function(e) {
+            if (isTouchDevice) {
+                e.preventDefault(); // Prevent double-tap zoom on mobile
+            }
             buttons.forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             currentView = this.dataset.view;
@@ -206,30 +224,45 @@ function init3DScene() {
     
     // Start animation loop
     animate();
+    
+    // Log performance info
+    console.log('🎮 Device:', isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop');
+    console.log('📱 Touch:', isTouchDevice ? 'Yes' : 'No');
+    console.log('⚡ Performance mode:', isMobile ? 'Optimized' : 'Full');
 }
 
 /**
- * Create 3D objects from data
+ * Create 3D objects from data - OPTIMIZED
  */
 function createObjects() {
     userData.forEach((person, index) => {
         // Create HTML element for each person
         const element = document.createElement('div');
         element.className = 'element';
+        
+        // Simplified styles for mobile, full styles for desktop
+        const boxShadow = isMobile ? '0 4px 16px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(0, 0, 0, 0.4)';
+        const backdropFilter = isMobile ? 'none' : 'blur(10px)';
+        
         element.style.cssText = `
             width: 130px;
             height: 170px;
             background: ${getColorByNetWorth(person.netWorth)};
             border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            box-shadow: ${boxShadow};
             border: 1px solid rgba(255, 255, 255, 0.1);
             font-family: 'DM Sans', sans-serif;
             text-align: center;
             cursor: pointer;
             opacity: 0.95;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            backdrop-filter: blur(10px);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            backdrop-filter: ${backdropFilter};
+            will-change: transform;
+            backface-visibility: hidden;
         `;
+        
+        // Simplified shadow for images on mobile
+        const imgShadow = isMobile ? '0 2px 6px rgba(0,0,0,0.2)' : '0 4px 12px rgba(0,0,0,0.3)';
         
         // Set inner HTML with person details
         element.innerHTML = `
@@ -237,7 +270,7 @@ function createObjects() {
                 <img src="${person.photo}" 
                      style="width: 85px; height: 85px; border-radius: 50%; object-fit: cover; 
                             margin-bottom: 10px; border: 3px solid rgba(255,255,255,0.3);
-                            box-shadow: 0 4px 12px rgba(0,0,0,0.3);"
+                            box-shadow: ${imgShadow};"
                      onerror="this.src='https://via.placeholder.com/85'">
                 <div style="font-size: 12px; font-weight: 700; color: white; margin-bottom: 5px; 
                             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -273,7 +306,7 @@ function createObjects() {
  * Transform objects to different layouts
  */
 function transform(objects, layout) {
-    const duration = 2000;
+    const duration = PERFORMANCE_CONFIG.animationDuration;
     
     objects.forEach((object, i) => {
         let position, rotation;
@@ -293,6 +326,10 @@ function transform(objects, layout) {
                 break;
             case 'grid':
                 position = gridLayout(i);
+                rotation = { x: 0, y: 0, z: 0 };
+                break;
+            case 'pyramid':
+                position = pyramidLayout(i, objects.length);
                 rotation = { x: 0, y: 0, z: 0 };
                 break;
         }
@@ -334,8 +371,8 @@ function sphereLayout(index, total) {
 function doubleHelixLayout(index) {
     const theta = index * 0.175 + Math.PI;
     const y = -(index * 8) + 800;
-    const helix = index % 2;  // Alternate between two helixes
-    const offset = helix * Math.PI;  // 180 degree offset for second helix
+    const helix = index % 2;
+    const offset = helix * Math.PI;
     
     return {
         x: Math.sin(theta + offset) * 900,
@@ -358,9 +395,46 @@ function gridLayout(index) {
     return { x, y, z };
 }
 
-// ===================================
+/**
+ * Pyramid/Tetrahedron layout (4-face pyramid)
+ */
+function pyramidLayout(index, total) {
+    const spacing = 170;
+    const heightSpacing = 160;
+
+    // Determine which layer the object is in
+    let layer = 0;
+    let used = 0;
+
+    while (true) {
+        const layerSize = (layer + 1) * (layer + 2) / 2;
+        if (used + layerSize > index) break;
+        used += layerSize;
+        layer++;
+    }
+
+    // Position inside the triangular layer
+    const indexInLayer = index - used;
+
+    let row = 0;
+    let rowStart = 0;
+    while (rowStart + row + 1 <= indexInLayer) {
+        rowStart += row + 1;
+        row++;
+    }
+
+    const col = indexInLayer - rowStart;
+
+    // Center triangle
+    const rowWidth = row + 1;
+    const x = (col - rowWidth / 2) * spacing + spacing / 2;
+    const z = (row - layer / 2) * spacing;
+    const y = 700 - layer * heightSpacing;
+
+    return { x, y, z };
+}
+
 // Animation Functions
-// ===================================
 
 /**
  * Animate object position transitions
@@ -426,14 +500,12 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-// ===================================
 // Initialize Application
-// ===================================
 
 window.addEventListener('load', function() {
-    console.log('🚀 Application loaded');
-    console.log('📍 Current URL:', window.location.href);
-    console.log('✅ Make sure this URL is in your OAuth authorized origins');
+    console.log('Application loaded');
+    console.log('Current URL:', window.location.href);
+    console.log('Make sure this URL is in your OAuth authorized origins');
     
     // Wait for Google API to load, then initialize
     if (typeof google !== 'undefined') {
